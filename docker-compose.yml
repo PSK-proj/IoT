@@ -1,0 +1,56 @@
+services:
+  broker:
+    image: eclipse-mosquitto:2
+    container_name: broker
+    restart: unless-stopped
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+    networks: [labnet]
+
+  node-red:
+    image: nodered/node-red:latest
+    container_name: node-red
+    restart: unless-stopped
+    ports:
+      - "1880:1880"
+    volumes:
+      - ./node-red:/data
+    networks: [labnet]
+    depends_on: [broker]
+
+  device_publisher:
+    build: ./devices/publisher
+    container_name: device_publisher
+    restart: unless-stopped
+    environment:
+      - DEVICE_NAME=publisher-1
+      - HEARTBEAT_SEC=5
+    networks: [labnet]
+    depends_on: [broker]
+
+  device_subscriber:
+    build: ./devices/subscriber
+    container_name: device_subscriber
+    restart: unless-stopped
+    environment:
+      - DEVICE_NAME=subscriber-1
+      - HEARTBEAT_SEC=5
+    networks: [labnet]
+    depends_on: [broker]
+
+  sniffer:
+    image: nicolaka/netshoot
+    container_name: sniffer
+    command: ["sleep", "infinity"]
+    restart: unless-stopped
+    cap_add: ["NET_ADMIN","NET_RAW"]
+    volumes:
+      - ./pcap:/pcap
+    networks: [labnet]
+    depends_on: [broker]
+
+networks:
+  labnet:
+    driver: bridge

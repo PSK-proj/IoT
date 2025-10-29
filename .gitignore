@@ -1,0 +1,30 @@
+# System/IDE
+.DS_Store
+.vscode/
+.idea/
+
+# Python
+__pycache__/
+*.pyc
+
+# Node-RED runtime
+node-red/.config.*
+node-red/.sessions.json
+node-red/.flows_*.cred
+node-red/.flows_*.json.backup
+node-red/node_modules/
+
+# Certyfikaty i klucze
+certs/**/*.key
+certs/**/*.pfx
+certs/**/*.p12
+
+# Nagrania ruchu
+pcap/*.pcap
+pcap/*.pcapng
+
+# Hasła brokera
+mosquitto/passwords
+
+# Zmienne środowiskowe
+.env
