@@ -4,9 +4,11 @@ services:
     container_name: broker
     restart: unless-stopped
     ports:
-      - "1883:1883"
+      - "${MQTT_PORT:-1883}:1883"
     volumes:
       - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - broker_data:/mosquitto/data
+      - broker_log:/mosquitto/log
     networks: [labnet]
 
   node-red:
@@ -15,42 +17,71 @@ services:
     restart: unless-stopped
     ports:
       - "1880:1880"
-    volumes:
-      - ./node-red:/data
+    environment:
+      - TZ=Europe/Warsaw
     networks: [labnet]
-    depends_on: [broker]
+    depends_on:
+      - broker
 
   device_publisher:
-    build: ./devices/publisher
+    build:
+      context: ./devices/publisher
     container_name: device_publisher
     restart: unless-stopped
+    env_file:
+      - .env
     environment:
-      - DEVICE_NAME=publisher-1
-      - HEARTBEAT_SEC=5
+      - DEVICE_NAME=${PUB_DEVICE_NAME:-publisher-1}
+      - HEARTBEAT_SEC=${PUB_HEARTBEAT_SEC:-1.0}
+      - MQTT_HOST=${MQTT_HOST:-broker}
+      - MQTT_PORT=${MQTT_PORT:-1883}
+      - MQTT_TLS=${MQTT_TLS:-0}
+      - MQTT_USERNAME=${MQTT_USERNAME:-}
+      - MQTT_PASSWORD=${MQTT_PASSWORD:-}
+      - MQTT_TOPIC_PUB=${MQTT_TOPIC_PUB:-lab/telemetry/${PUB_DEVICE_NAME:-publisher-1}}
+      - MQTT_QOS=${MQTT_QOS:-0}
     networks: [labnet]
-    depends_on: [broker]
+    depends_on:
+      - broker
 
   device_subscriber:
-    build: ./devices/subscriber
+    build:
+      context: ./devices/subscriber
     container_name: device_subscriber
     restart: unless-stopped
+    env_file:
+      - .env
     environment:
-      - DEVICE_NAME=subscriber-1
-      - HEARTBEAT_SEC=5
+      - DEVICE_NAME=${SUB_DEVICE_NAME:-subscriber-1}
+      - HEARTBEAT_SEC=${SUB_HEARTBEAT_SEC:-1.0}
+      - MQTT_HOST=${MQTT_HOST:-broker}
+      - MQTT_PORT=${MQTT_PORT:-1883}
+      - MQTT_TLS=${MQTT_TLS:-0}
+      - MQTT_USERNAME=${MQTT_USERNAME:-}
+      - MQTT_PASSWORD=${MQTT_PASSWORD:-}
+      - MQTT_TOPIC_SUB=${MQTT_TOPIC_SUB:-lab/telemetry/#}
+      - MQTT_TOPIC_METRICS=${MQTT_TOPIC_METRICS:-lab/metrics}
+      - MQTT_QOS=${MQTT_QOS:-0}
     networks: [labnet]
-    depends_on: [broker]
+    depends_on:
+      - broker
 
   sniffer:
-    image: nicolaka/netshoot
+    image: nicolaka/netshoot:latest
     container_name: sniffer
-    command: ["sleep", "infinity"]
+    network_mode: "service:broker"
+    cap_add: ["NET_ADMIN", "NET_RAW"]
     restart: unless-stopped
-    cap_add: ["NET_ADMIN","NET_RAW"]
+    command: ["sleep", "infinity"]
     volumes:
       - ./pcap:/pcap
-    networks: [labnet]
-    depends_on: [broker]
+    depends_on:
+      - broker
 
 networks:
   labnet:
     driver: bridge
+
+volumes:
+  broker_data:
+  broker_log:
