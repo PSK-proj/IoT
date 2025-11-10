@@ -7,7 +7,7 @@ services:
     environment:
       - SRV_CN=broker
       - SRV_SAN=DNS:broker,DNS:localhost
-      - CLIENT_CN_LIST=
+      - CLIENT_CN_LIST=publisher-1,subscriber-1
     volumes:
       - ./certs:/work/certs
     working_dir: /work

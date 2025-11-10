@@ -2,7 +2,7 @@
 set -eu
 
 CERTS_DIR="${CERTS_DIR:-/work/certs}"
-mkdir -p "$CERTS_DIR"
+mkdir -p "$CERTS_DIR" "$CERTS_DIR/clients"
 
 CA_SUBJ="${CA_SUBJ:-/C=PL/O=IoTLab/CN=IoTLab-CA}"
 SRV_CN="${SRV_CN:-broker}"
@@ -23,17 +23,14 @@ echo "[certgen] CERTS_DIR=$CERTS_DIR"
 echo "[certgen] SRV_CN=$SRV_CN  SRV_SAN=$SRV_SAN"
 [ -n "$CLIENT_CN_LIST" ] && echo "[certgen] CLIENT_CN_LIST=$CLIENT_CN_LIST"
 
-# CA
 if [ ! -f "$CA_KEY" ] || [ ! -f "$CA_CRT" ]; then
   echo "[certgen] Generowanie CA…"
   openssl genrsa -out "$CA_KEY" 4096 >/dev/null 2>&1
-  openssl req -x509 -new -nodes -key "$CA_KEY" -sha256 -days "$DAYS_CA" \
-    -subj "$CA_SUBJ" -out "$CA_CRT" >/dev/null 2>&1
+  openssl req -x509 -new -nodes -key "$CA_KEY" -sha256 -days "$DAYS_CA" -subj "$CA_SUBJ" -out "$CA_CRT" >/dev/null 2>&1
 else
   echo "[certgen] CA już istnieje."
 fi
 
-# SAN dla serwera
 cat > "$SRV_CNF" <<EOF
 [ req ]
 default_bits = 2048
@@ -48,30 +45,30 @@ CN = ${SRV_CN}
 
 [ req_ext ]
 subjectAltName = ${SRV_SAN}
+keyUsage = digitalSignature,keyEncipherment
+extendedKeyUsage = serverAuth
 EOF
 
-# Cert serwera
 if [ ! -f "$SRV_KEY" ] || [ ! -f "$SRV_CRT" ]; then
   echo "[certgen] Generowanie cert serwera…"
   openssl genrsa -out "$SRV_KEY" 2048 >/dev/null 2>&1
   openssl req -new -key "$SRV_KEY" -out "$SRV_CSR" -config "$SRV_CNF" >/dev/null 2>&1
-  openssl x509 -req -in "$SRV_CSR" -CA "$CA_CRT" -CAkey "$CA_KEY" -CAcreateserial \
-    -out "$SRV_CRT" -days "$DAYS_SRV" -sha256 -extfile "$SRV_CNF" -extensions req_ext >/dev/null 2>&1
+  openssl x509 -req -in "$SRV_CSR" -CA "$CA_CRT" -CAkey "$CA_KEY" -CAcreateserial -out "$SRV_CRT" -days "$DAYS_SRV" -sha256 -extfile "$SRV_CNF" -extensions req_ext >/dev/null 2>&1
   rm -f "$SRV_CSR"
 else
   echo "[certgen] Cert serwera już istnieje"
 fi
 
+chmod 0600 "$CA_KEY" || true
 chmod 0644 "$CA_CRT" "$SRV_CRT" "$SRV_KEY" || true
 
-# mTLS
 if [ -n "$CLIENT_CN_LIST" ]; then
   echo "$CLIENT_CN_LIST" | tr ',' '\n' | while read -r CN; do
     CN_TRIM="$(echo "$CN" | tr -d '[:space:]')"
     [ -z "$CN_TRIM" ] && continue
-    C_KEY="$CERTS_DIR/${CN_TRIM}.key"
-    C_CSR="$CERTS_DIR/${CN_TRIM}.csr"
-    C_CRT="$CERTS_DIR/${CN_TRIM}.crt"
+    C_KEY="$CERTS_DIR/clients/${CN_TRIM}.key"
+    C_CSR="$CERTS_DIR/clients/${CN_TRIM}.csr"
+    C_CRT="$CERTS_DIR/clients/${CN_TRIM}.crt"
     if [ -f "$C_KEY" ] && [ -f "$C_CRT" ]; then
       echo "[certgen] Klient ${CN_TRIM} już istnieje"
       continue
@@ -79,8 +76,9 @@ if [ -n "$CLIENT_CN_LIST" ]; then
     echo "[certgen] Generuję klienta ${CN_TRIM}…"
     openssl genrsa -out "$C_KEY" 2048 >/dev/null 2>&1
     openssl req -new -key "$C_KEY" -subj "/C=PL/O=IoTLab/CN=${CN_TRIM}" -out "$C_CSR" >/dev/null 2>&1
-    openssl x509 -req -in "$C_CSR" -CA "$CA_CRT" -CAkey "$CA_KEY" -CAcreateserial \
-      -out "$C_CRT" -days "$DAYS_SRV" -sha256 -extfile /dev/stdin >/dev/null 2>&1 <<EOF
+    openssl x509 -req -in "$C_CSR" -CA "$CA_CRT" -CAkey "$CA_KEY" -CAcreateserial -out "$C_CRT" -days "$DAYS_SRV" -sha256 -extfile /dev/stdin >/dev/null 2>&1 <<EOF
+basicConstraints = CA:FALSE
+keyUsage = digitalSignature
 extendedKeyUsage = clientAuth
 EOF
     rm -f "$C_CSR"
@@ -90,3 +88,5 @@ fi
 
 echo "[certgen] Pliki w $CERTS_DIR:"
 ls -l "$CERTS_DIR" || true
+echo "[certgen] Pliki w $CERTS_DIR/clients:"
+ls -l "$CERTS_DIR/clients" || true
