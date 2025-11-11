@@ -6,6 +6,7 @@ services:
     ports:
       - "1883:1883"
       - "8883:8883"
+      - "8884:8884"
     volumes:
       - ./mosquitto:/mosquitto/config
       - ./certs:/mosquitto/certs
@@ -42,6 +43,10 @@ services:
       - MQTT_TLS_HOST=${MQTT_TLS_HOST:-broker}
       - MQTT_TLS_PORT=${MQTT_TLS_PORT:-8883}
       - MQTT_TLS_CA=${MQTT_TLS_CA:-/certs/ca.crt}
+      - MQTT_MTLS_HOST=${MQTT_MTLS_HOST:-broker}
+      - MQTT_MTLS_PORT=${MQTT_MTLS_PORT:-8884}
+      - MQTT_CLIENT_CERT=${MQTT_CLIENT_CERT:-/certs/clients/publisher-1.crt}
+      - MQTT_CLIENT_KEY=${MQTT_CLIENT_KEY:-/certs/clients/publisher-1.key}
       - MQTT_USERNAME=${MQTT_USERNAME:-}
       - MQTT_PASSWORD=${MQTT_PASSWORD:-}
       - DEVICE_NAME=${PUB_DEVICE_NAME:-publisher-1}
@@ -49,7 +54,7 @@ services:
       - MQTT_TOPIC_PUB=${MQTT_TOPIC_PUB:-}
       - MQTT_QOS=${MQTT_QOS:-0}
     volumes:
-      - ./certs/ca.crt:/certs/ca.crt:ro
+      - ./certs:/certs:ro
     networks: [labnet]
     depends_on:
       - broker
@@ -69,6 +74,10 @@ services:
       - MQTT_TLS_HOST=${MQTT_TLS_HOST:-broker}
       - MQTT_TLS_PORT=${MQTT_TLS_PORT:-8883}
       - MQTT_TLS_CA=${MQTT_TLS_CA:-/certs/ca.crt}
+      - MQTT_MTLS_HOST=${MQTT_MTLS_HOST:-broker}
+      - MQTT_MTLS_PORT=${MQTT_MTLS_PORT:-8884}
+      - MQTT_CLIENT_CERT=${MQTT_CLIENT_CERT:-/certs/clients/subscriber-1.crt}
+      - MQTT_CLIENT_KEY=${MQTT_CLIENT_KEY:-/certs/clients/subscriber-1.key}
       - MQTT_USERNAME=${MQTT_USERNAME:-}
       - MQTT_PASSWORD=${MQTT_PASSWORD:-}
       - DEVICE_NAME=${SUB_DEVICE_NAME:-subscriber-1}
@@ -77,7 +86,7 @@ services:
       - MQTT_TOPIC_METRICS=${MQTT_TOPIC_METRICS:-lab/metrics}
       - MQTT_QOS=${MQTT_QOS:-0}
     volumes:
-      - ./certs/ca.crt:/certs/ca.crt:ro
+      - ./certs:/certs:ro
     networks: [labnet]
     depends_on:
       - broker

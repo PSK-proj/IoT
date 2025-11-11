@@ -14,6 +14,11 @@ MQTT_TLS_HOST = os.environ.get("MQTT_TLS_HOST", "broker")
 MQTT_TLS_PORT = int(os.environ.get("MQTT_TLS_PORT", "8883"))
 MQTT_TLS_CA = os.environ.get("MQTT_TLS_CA", "/certs/ca.crt")
 
+MQTT_MTLS_HOST = os.environ.get("MQTT_MTLS_HOST", "broker")
+MQTT_MTLS_PORT = int(os.environ.get("MQTT_MTLS_PORT", "8884"))
+MQTT_CLIENT_CERT = os.environ.get("MQTT_CLIENT_CERT", f"/certs/clients/{DEVICE_NAME}.crt")
+MQTT_CLIENT_KEY = os.environ.get("MQTT_CLIENT_KEY", f"/certs/clients/{DEVICE_NAME}.key")
+
 MQTT_USER = os.environ.get("MQTT_USERNAME") or None
 MQTT_PASS = os.environ.get("MQTT_PASSWORD") or None
 
@@ -25,7 +30,7 @@ PERIOD = float(os.environ.get("HEARTBEAT_SEC", "1.0"))
 _running = True
 _client_lock = threading.RLock()
 _client = None
-_mode = MQTT_MODE_DEFAULT if MQTT_MODE_DEFAULT in ("PLAIN", "TLS") else "PLAIN"
+_mode = MQTT_MODE_DEFAULT if MQTT_MODE_DEFAULT in ("PLAIN", "TLS", "MTLS") else "PLAIN"
 lat_samples_ms = []
 
 def _stop(sig, frame):
@@ -41,14 +46,13 @@ def _on_connect(client, userdata, flags, rc, properties=None):
     if rc == 0:
         client.subscribe(TOPIC_SUB, qos=QOS)
         client.subscribe(MQTT_CONTROL_TOPIC, qos=1)
-        print(f"[{DEVICE_NAME}] subscribed {TOPIC_SUB} qos={QOS}", flush=True)
 
 def _on_message(client, userdata, msg):
     global lat_samples_ms, _mode
     if msg.topic == MQTT_CONTROL_TOPIC:
         try:
             s = msg.payload.decode("utf-8", errors="replace").strip().upper()
-            target = "TLS" if s == "MODE=TLS" else "PLAIN" if s == "MODE=PLAIN" else None
+            target = "MTLS" if s == "MODE=MTLS" else "TLS" if s == "MODE=TLS" else "PLAIN" if s == "MODE=PLAIN" else None
             if target and target != _mode:
                 print(f"[{DEVICE_NAME}] control: switch {_mode} -> {target}", flush=True)
                 _switch_mode(target)
@@ -56,7 +60,6 @@ def _on_message(client, userdata, msg):
         except Exception as e:
             print(f"[{DEVICE_NAME}] control decode error: {e}", flush=True)
             return
-
     try:
         data = json.loads(msg.payload.decode("utf-8"))
         t_send = data.get("ts_monotonic_ns")
@@ -73,13 +76,18 @@ def _on_disconnect(client, userdata, rc, properties=None):
     print(f"[{DEVICE_NAME}] disconnected rc={rc}", flush=True)
 
 def _build_client(mode: str) -> mqtt.Client:
-    c = mqtt.Client(mqtt.CallbackAPIVersion.VERSION1,
-                    client_id=f"{DEVICE_NAME}", clean_session=True, protocol=mqtt.MQTTv311)
+    c = mqtt.Client(mqtt.CallbackAPIVersion.VERSION1, client_id=f"{DEVICE_NAME}", clean_session=True, protocol=mqtt.MQTTv311)
     if MQTT_USER:
         c.username_pw_set(MQTT_USER, MQTT_PASS)
     if mode == "TLS":
         ca = MQTT_TLS_CA if os.path.exists(MQTT_TLS_CA) else None
         c.tls_set(ca_certs=ca)
+        c.tls_insecure_set(False)
+    if mode == "MTLS":
+        ca = MQTT_TLS_CA if os.path.exists(MQTT_TLS_CA) else None
+        certf = MQTT_CLIENT_CERT if os.path.exists(MQTT_CLIENT_CERT) else None
+        keyf = MQTT_CLIENT_KEY if os.path.exists(MQTT_CLIENT_KEY) else None
+        c.tls_set(ca_certs=ca, certfile=certf, keyfile=keyf)
         c.tls_insecure_set(False)
     c.on_connect = _on_connect
     c.on_message = _on_message
@@ -88,7 +96,12 @@ def _build_client(mode: str) -> mqtt.Client:
     return c
 
 def _connect_current(client: mqtt.Client, mode: str):
-    host, port = (MQTT_TLS_HOST, MQTT_TLS_PORT) if mode == "TLS" else (MQTT_PLAIN_HOST, MQTT_PLAIN_PORT)
+    if mode == "MTLS":
+        host, port = MQTT_MTLS_HOST, MQTT_MTLS_PORT
+    elif mode == "TLS":
+        host, port = MQTT_TLS_HOST, MQTT_TLS_PORT
+    else:
+        host, port = MQTT_PLAIN_HOST, MQTT_PLAIN_PORT
     client.connect(host, port, keepalive=30)
     client.loop_start()
     print(f"[{DEVICE_NAME}] dial {mode} -> {host}:{port}", flush=True)
@@ -121,13 +134,7 @@ def _metrics_loop():
         if lat_samples_ms:
             p50 = statistics.median(lat_samples_ms)
             p95 = statistics.quantiles(lat_samples_ms, n=20)[-1] if len(lat_samples_ms) >= 20 else p50
-            metrics = {
-                "device": DEVICE_NAME,
-                "ts_utc": datetime.now(timezone.utc).isoformat(),
-                "samples": len(lat_samples_ms),
-                "p50_ms": round(p50, 2),
-                "p95_ms": round(p95, 2),
-            }
+            metrics = {"device": DEVICE_NAME, "ts_utc": datetime.now(timezone.utc).isoformat(), "samples": len(lat_samples_ms), "p50_ms": round(p50, 2), "p95_ms": round(p95, 2)}
             payload = json.dumps(metrics, separators=(",", ":"))
             with _client_lock:
                 c = _client
@@ -137,10 +144,8 @@ def _metrics_loop():
 def main():
     print(f"[{DEVICE_NAME}] starting subscriber | default_mode={_mode} sub={TOPIC_SUB}", flush=True)
     _switch_mode(_mode)
-
     t = threading.Thread(target=_metrics_loop, daemon=True)
     t.start()
-
     try:
         while _running:
             time.sleep(0.5)

@@ -1,0 +1,8 @@
+user publisher-1
+topic read lab/control
+topic write lab/telemetry/publisher-1
+
+user subscriber-1
+topic read lab/control
+topic read lab/telemetry/#
+topic write lab/metrics
