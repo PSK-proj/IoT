@@ -20,8 +20,8 @@ certs/**/*.pfx
 certs/**/*.p12
 
 # Nagrania ruchu
-pcap/*.pcap
-pcap/*.pcapng
+pcap/
+!pcap/.gitkeep
 
 # Hasła brokera
 mosquitto/passwords

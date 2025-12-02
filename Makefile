@@ -13,6 +13,7 @@ rebuild:
 
 logs:
 	docker compose logs -f --tail=200
+	docker logs -f broker
 
 ps:
 	docker compose ps
