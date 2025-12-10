@@ -5,7 +5,9 @@ function Start-LabCapture {
         [ValidateSet('plain','tls','mtls','all')]
         [string]$Mode = 'all',
         [string]$Scenario = '',
+        [ValidateRange(5, 86400)]
         [int]$RotateSec = 300,
+        [ValidateRange(1, 100)]
         [int]$Files = 6
     )
 

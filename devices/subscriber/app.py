@@ -134,7 +134,15 @@ def _metrics_loop():
         if lat_samples_ms:
             p50 = statistics.median(lat_samples_ms)
             p95 = statistics.quantiles(lat_samples_ms, n=20)[-1] if len(lat_samples_ms) >= 20 else p50
-            metrics = {"device": DEVICE_NAME, "ts_utc": datetime.now(timezone.utc).isoformat(), "samples": len(lat_samples_ms), "p50_ms": round(p50, 2), "p95_ms": round(p95, 2)}
+            count = len(lat_samples_ms)
+            metrics = {
+                "device": DEVICE_NAME,
+                "ts_utc": datetime.now(timezone.utc).isoformat(),
+                "count": count,
+                "samples": count,
+                "p50_ms": round(p50, 2),
+                "p95_ms": round(p95, 2),
+            }
             payload = json.dumps(metrics, separators=(",", ":"))
             with _client_lock:
                 c = _client

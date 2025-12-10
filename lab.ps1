@@ -83,20 +83,50 @@ function Invoke-StartSniffer {
 
     $scenario = Read-Host "Etykieta scenariusza (np. test-plain)"
 
+    $rotateSec = 300
     $rotateSecRaw = Read-Host "RotateSec - czas rotacji pliku (s, domyslnie: 300)"
-    if ([string]::IsNullOrWhiteSpace($rotateSecRaw)) {
-        $rotateSec = 300
-    }
-    else {
-        $rotateSec = [int]$rotateSecRaw
+    if (-not [string]::IsNullOrWhiteSpace($rotateSecRaw)) {
+        $tmpRotate = 0
+        if ([int]::TryParse($rotateSecRaw, [ref]$tmpRotate)) {
+            if ($tmpRotate -lt 5) {
+                Write-Host "RotateSec mniejsze niz 5s, ustawiam 5." -ForegroundColor Yellow
+                $rotateSec = 5
+            }
+            elseif ($tmpRotate -gt 86400) {
+                Write-Host "RotateSec wieksze niz 86400s, ustawiam 86400." -ForegroundColor Yellow
+                $rotateSec = 86400
+            }
+            else {
+                $rotateSec = $tmpRotate
+            }
+        }
+        else {
+            Write-Host "Nieprawidlowa wartosc RotateSec, uzywam 300." -ForegroundColor Yellow
+            $rotateSec = 300
+        }
     }
 
+    $files = 6
     $filesRaw = Read-Host "Files - liczba plikow rotacyjnych (domyslnie: 6)"
-    if ([string]::IsNullOrWhiteSpace($filesRaw)) {
-        $files = 6
-    }
-    else {
-        $files = [int]$filesRaw
+    if (-not [string]::IsNullOrWhiteSpace($filesRaw)) {
+        $tmpFiles = 0
+        if ([int]::TryParse($filesRaw, [ref]$tmpFiles)) {
+            if ($tmpFiles -lt 1) {
+                Write-Host "Files mniejsze niz 1, ustawiam 1." -ForegroundColor Yellow
+                $files = 1
+            }
+            elseif ($tmpFiles -gt 100) {
+                Write-Host "Files wieksze niz 100, ustawiam 100." -ForegroundColor Yellow
+                $files = 100
+            }
+            else {
+                $files = $tmpFiles
+            }
+        }
+        else {
+            Write-Host "Nieprawidlowa wartosc Files, uzywam 6." -ForegroundColor Yellow
+            $files = 6
+        }
     }
 
     try {
