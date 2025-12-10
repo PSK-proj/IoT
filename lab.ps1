@@ -214,6 +214,19 @@ function Invoke-ManualCommand {
     }
 }
 
+function Invoke-OpenNodeRed {
+    Clear-Host
+    Write-Host "== Otwieranie Node-RED ==" -ForegroundColor Cyan
+    try {
+        Start-Process "http://localhost:1880/"
+        Start-Process "http://localhost:1880/dashboard/"
+    }
+    catch {
+        Write-Host "Blad podczas otwierania przegladarki: $_" -ForegroundColor Red
+    }
+    Pause
+}
+
 function Get-SnifferStatusLabel {
     try {
         $status = Get-LabCaptureStatus 2>$null
@@ -267,6 +280,8 @@ while ($true) {
     $canStartSniffer   = (-not $dockerIsOff) -and ($dockerStatus -eq 'up') -and ($snifferStatus -ne 'aktywny')
     $canStopSniffer    = (-not $dockerIsOff) -and ($snifferStatus -eq 'aktywny')
 
+    $canOpenNodeRed    = (-not $dockerIsOff) -and ($dockerStatus -eq 'up')
+
     Clear-Host
     Write-Host "=== Mini-lab IoT - menu ===" -ForegroundColor Green
     Write-Host ""
@@ -302,14 +317,14 @@ while ($true) {
         }
     }
 
-
     Write-MenuItem "[7]" "Start sniffera (wybor trybu, scenariusza, RotateSec, Files)" $canStartSniffer
     Write-MenuItem "[8]" "Stop sniffera"                                               $canStopSniffer
     Write-MenuItem "[9]" "Lista plikow pcap"                                           $true
     Write-Host ""
     Write-Host "---- Inne ----"
     Write-MenuItem "[M]" "Tryb reczny - pomoc + wprowadzanie polecen" $true
-    Write-MenuItem "[Q]" "Wyjscie" $true
+    Write-MenuItem "[D]" "Otworz Node-RED + dashboard"                 $canOpenNodeRed
+    Write-MenuItem "[Q]" "Wyjscie"                                     $true
     Write-Host ""
 
     $choice = Read-Host "Wybierz opcje"
@@ -477,6 +492,17 @@ while ($true) {
         }
         'M' {
             Invoke-ManualCommand
+        }
+        'D' {
+            if (-not $canOpenNodeRed) {
+                Clear-Host
+                Write-Host "== Otwieranie Node-RED ==" -ForegroundColor Cyan
+                Write-Host "Nie mozna otworzyc interfejsu - kontenery labu nie sa w stanie UP (status Docker: $dockerStatus)." -ForegroundColor Yellow
+                Pause
+            }
+            else {
+                Invoke-OpenNodeRed
+            }
         }
         'Q' {
             return
