@@ -1,0 +1,630 @@
+[
+    {
+        "id": "3f5eba95e9beea2c",
+        "type": "tab",
+        "label": "IoT Lab Control",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "95082b91dd269129",
+        "type": "function",
+        "z": "3f5eba95e9beea2c",
+        "name": "Set mode & publish control",
+        "func": "var payload = msg.payload;\nif (typeof payload === \"string\") {\n    var m = payload.match(/MODE\\s*=\\s*(PLAIN|TLS|MTLS)/i);\n    if (m) {\n        var mode = m[1].toUpperCase();\n        flow.set(\"currentMode\", mode);\n        var uiMsg = { payload: mode };\n        return [msg, uiMsg];\n    }\n}\nreturn [null, null];",
+        "outputs": 2,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 470,
+        "y": 200,
+        "wires": [
+            [
+                "bf6efb4d8d4b0709"
+            ],
+            [
+                "eecb41822cf22687"
+            ]
+        ]
+    },
+    {
+        "id": "bf6efb4d8d4b0709",
+        "type": "mqtt out",
+        "z": "3f5eba95e9beea2c",
+        "name": "publish lab/control (retained)",
+        "topic": "",
+        "qos": "1",
+        "retain": true,
+        "respTopic": "",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "bkr1",
+        "x": 830,
+        "y": 200,
+        "wires": []
+    },
+    {
+        "id": "ef9d8fcc46449295",
+        "type": "mqtt in",
+        "z": "3f5eba95e9beea2c",
+        "name": "sub lab/control (retained)",
+        "topic": "lab/control",
+        "qos": "1",
+        "datatype": "auto",
+        "broker": "bkr1",
+        "nl": false,
+        "rap": true,
+        "rh": 2,
+        "inputs": 0,
+        "x": 170,
+        "y": 260,
+        "wires": [
+            [
+                "2b6d50cac903e580"
+            ]
+        ]
+    },
+    {
+        "id": "2b6d50cac903e580",
+        "type": "function",
+        "z": "3f5eba95e9beea2c",
+        "name": "Update currentMode from MQTT",
+        "func": "var payload = msg.payload;\nif (typeof payload === \"string\") {\n    var m = payload.match(/MODE\\s*=\\s*(PLAIN|TLS|MTLS)/i);\n    if (m) {\n        var mode = m[1].toUpperCase();\n        flow.set(\"currentMode\", mode);\n        msg.payload = mode;\n        return msg;\n    }\n}\nreturn null;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 470,
+        "y": 260,
+        "wires": [
+            [
+                "eecb41822cf22687"
+            ]
+        ]
+    },
+    {
+        "id": "08505f5683a79078",
+        "type": "ui-button",
+        "z": "3f5eba95e9beea2c",
+        "group": "uiGroupControl",
+        "name": "BTN MODE=PLAIN",
+        "label": "MODE=PLAIN (no TLS)",
+        "order": 1,
+        "width": 0,
+        "height": 1,
+        "emulateClick": false,
+        "tooltip": "",
+        "color": "",
+        "bgcolor": "",
+        "className": "",
+        "icon": "",
+        "iconPosition": "left",
+        "payload": "MODE=PLAIN",
+        "payloadType": "str",
+        "topic": "lab/control",
+        "topicType": "str",
+        "buttonColor": "",
+        "textColor": "",
+        "iconColor": "",
+        "enableClick": true,
+        "enablePointerdown": false,
+        "pointerdownPayload": "",
+        "pointerdownPayloadType": "str",
+        "enablePointerup": false,
+        "pointerupPayload": "",
+        "pointerupPayloadType": "str",
+        "x": 220,
+        "y": 120,
+        "wires": [
+            [
+                "95082b91dd269129"
+            ]
+        ]
+    },
+    {
+        "id": "cf609a07a3a03a4e",
+        "type": "ui-button",
+        "z": "3f5eba95e9beea2c",
+        "group": "uiGroupControl",
+        "name": "BTN MODE=TLS",
+        "label": "MODE=TLS (TLS)",
+        "order": 2,
+        "width": 0,
+        "height": 1,
+        "emulateClick": false,
+        "tooltip": "",
+        "color": "",
+        "bgcolor": "",
+        "className": "",
+        "icon": "",
+        "iconPosition": "left",
+        "payload": "MODE=TLS",
+        "payloadType": "str",
+        "topic": "lab/control",
+        "topicType": "str",
+        "buttonColor": "",
+        "textColor": "",
+        "iconColor": "",
+        "enableClick": true,
+        "enablePointerdown": false,
+        "pointerdownPayload": "",
+        "pointerdownPayloadType": "str",
+        "enablePointerup": false,
+        "pointerupPayload": "",
+        "pointerupPayloadType": "str",
+        "x": 220,
+        "y": 160,
+        "wires": [
+            [
+                "95082b91dd269129"
+            ]
+        ]
+    },
+    {
+        "id": "fc909b9d3cc227f5",
+        "type": "ui-button",
+        "z": "3f5eba95e9beea2c",
+        "group": "uiGroupControl",
+        "name": "BTN MODE=MTLS",
+        "label": "MODE=MTLS (mutual TLS)",
+        "order": 3,
+        "width": 0,
+        "height": 1,
+        "emulateClick": false,
+        "tooltip": "",
+        "color": "",
+        "bgcolor": "",
+        "className": "",
+        "icon": "",
+        "iconPosition": "left",
+        "payload": "MODE=MTLS",
+        "payloadType": "str",
+        "topic": "lab/control",
+        "topicType": "str",
+        "buttonColor": "",
+        "textColor": "",
+        "iconColor": "",
+        "enableClick": true,
+        "enablePointerdown": false,
+        "pointerdownPayload": "",
+        "pointerdownPayloadType": "str",
+        "enablePointerup": false,
+        "pointerupPayload": "",
+        "pointerupPayloadType": "str",
+        "x": 240,
+        "y": 200,
+        "wires": [
+            [
+                "95082b91dd269129"
+            ]
+        ]
+    },
+    {
+        "id": "eecb41822cf22687",
+        "type": "ui-text",
+        "z": "3f5eba95e9beea2c",
+        "group": "uiGroupControl",
+        "order": 4,
+        "width": 0,
+        "height": 1,
+        "name": "Current MODE",
+        "label": "Current MQTT mode",
+        "format": "{{msg.payload}}",
+        "layout": "row-spread",
+        "style": false,
+        "font": "Gill Sans,Geneva,sans-serif",
+        "fontSize": 18,
+        "color": "#000000",
+        "className": "",
+        "x": 840,
+        "y": 260,
+        "wires": []
+    },
+    {
+        "id": "4164f148b568cd79",
+        "type": "mqtt in",
+        "z": "3f5eba95e9beea2c",
+        "name": "sub lab/metrics",
+        "topic": "lab/metrics",
+        "qos": "0",
+        "datatype": "json",
+        "broker": "bkr1",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 130,
+        "y": 380,
+        "wires": [
+            [
+                "3aa1290ff2c2a6bc"
+            ]
+        ]
+    },
+    {
+        "id": "3aa1290ff2c2a6bc",
+        "type": "function",
+        "z": "3f5eba95e9beea2c",
+        "name": "Metrics → chart + text",
+        "func": "var m = msg.payload || {};\nvar mode = flow.get(\"currentMode\") || \"UNKNOWN\";\nvar now = new Date().toISOString();\nvar p50 = Number(m.p50_ms);\nvar p95 = Number(m.p95_ms);\nvar count = Number(m.count);\nvar ts = m.ts_utc || now;\nvar text = \"Mode: \" + mode +\n           \" | p50: \" + (isNaN(p50) ? \"-\" : p50.toFixed(1)) + \" ms\" +\n           \" | p95: \" + (isNaN(p95) ? \"-\" : p95.toFixed(1)) + \" ms\" +\n           \" | n=\" + (isNaN(count) ? \"-\" : count) +\n           \" | ts=\" + ts;\nflow.set(\"lastMetrics\", { mode: mode, p50_ms: p50, p95_ms: p95, count: count, ts: ts });\nvar msgs = [];\nif (!isNaN(p50)) { msgs.push({ payload: p50, topic: \"p50_ms\" }); }\nif (!isNaN(p95)) { msgs.push({ payload: p95, topic: \"p95_ms\" }); }\nvar uiTextMsg = { payload: text };\nreturn [msgs, uiTextMsg];",
+        "outputs": 2,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 450,
+        "y": 380,
+        "wires": [
+            [
+                "0116c1c0b1747e3f"
+            ],
+            [
+                "59f4e8182594df93"
+            ]
+        ]
+    },
+    {
+        "id": "59f4e8182594df93",
+        "type": "ui-text",
+        "z": "3f5eba95e9beea2c",
+        "group": "uiGroupMetrics",
+        "order": 2,
+        "width": 12,
+        "height": 1,
+        "name": "Metrics summary",
+        "label": "Last metrics",
+        "format": "{{msg.payload}}",
+        "layout": "row-spread",
+        "style": false,
+        "font": "Gill Sans,Geneva,sans-serif",
+        "fontSize": 14,
+        "color": "#000000",
+        "className": "",
+        "x": 840,
+        "y": 420,
+        "wires": []
+    },
+    {
+        "id": "11e868d1a70a7811",
+        "type": "mqtt in",
+        "z": "3f5eba95e9beea2c",
+        "name": "sub lab/telemetry/#",
+        "topic": "lab/telemetry/#",
+        "qos": "0",
+        "datatype": "json",
+        "broker": "bkr1",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 150,
+        "y": 520,
+        "wires": [
+            [
+                "ea06553e7da6fa70",
+                "6df8089dd6c62968"
+            ]
+        ]
+    },
+    {
+        "id": "ea06553e7da6fa70",
+        "type": "function",
+        "z": "3f5eba95e9beea2c",
+        "name": "Telemetry → chart",
+        "func": "var t = msg.payload || {};\nvar seq = Number(t.seq);\nif (isNaN(seq)) { return null; }\nmsg.topic = t.device || \"device\";\nmsg.payload = seq;\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 450,
+        "y": 500,
+        "wires": [
+            [
+                "7365b45adeaea169"
+            ]
+        ]
+    },
+    {
+        "id": "6df8089dd6c62968",
+        "type": "function",
+        "z": "3f5eba95e9beea2c",
+        "name": "Telemetry → last msg text",
+        "func": "var t = msg.payload || {};\nvar mode = flow.get(\"currentMode\") || \"UNKNOWN\";\nvar text = \"Device: \" + (t.device || \"device\") +\n           \" | seq=\" + (t.seq != null ? t.seq : \"?\") +\n           \" | ts=\" + (t.ts_utc || \"?\") +\n           \" | mode=\" + mode;\nmsg.payload = text;\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 460,
+        "y": 540,
+        "wires": [
+            [
+                "3ed4699b25ddc493"
+            ]
+        ]
+    },
+    {
+        "id": "7365b45adeaea169",
+        "type": "ui-chart",
+        "z": "3f5eba95e9beea2c",
+        "group": "uiGroupTelemetry",
+        "name": "Telemetry seq",
+        "label": "Telemetry sequence per device",
+        "order": 1,
+        "chartType": "line",
+        "category": "topic",
+        "categoryType": "msg",
+        "xAxisLabel": "",
+        "xAxisProperty": "",
+        "xAxisPropertyType": "timestamp",
+        "xAxisType": "time",
+        "xAxisFormat": "",
+        "xAxisFormatType": "auto",
+        "xmin": "",
+        "xmax": "",
+        "yAxisLabel": "",
+        "yAxisProperty": "payload",
+        "yAxisPropertyType": "msg",
+        "ymin": "0",
+        "ymax": "",
+        "bins": "",
+        "action": "append",
+        "stackSeries": false,
+        "pointRadius": "",
+        "showLegend": true,
+        "removeOlder": 1,
+        "removeOlderUnit": "3600",
+        "removeOlderPoints": "",
+        "colors": [
+            "#1f77b4",
+            "#ff7f0e",
+            "#2ca02c",
+            "#d62728",
+            "#000000",
+            "#000000",
+            "#000000",
+            "#000000",
+            "#000000"
+        ],
+        "textColor": [
+            "#666666"
+        ],
+        "textColorDefault": true,
+        "gridColor": [
+            "#e5e5e5"
+        ],
+        "gridColorDefault": true,
+        "width": 12,
+        "height": 6,
+        "className": "",
+        "interpolation": "linear",
+        "x": 840,
+        "y": 500,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "3ed4699b25ddc493",
+        "type": "ui-text",
+        "z": "3f5eba95e9beea2c",
+        "group": "uiGroupTelemetry",
+        "order": 2,
+        "width": 12,
+        "height": 1,
+        "name": "Last telemetry",
+        "label": "Last telemetry",
+        "format": "{{msg.payload}}",
+        "layout": "row-spread",
+        "style": false,
+        "font": "Gill Sans,Geneva,sans-serif",
+        "fontSize": 14,
+        "color": "#000000",
+        "className": "",
+        "x": 850,
+        "y": 560,
+        "wires": []
+    },
+    {
+        "id": "e3a8d2bc2f6e2f37",
+        "type": "mqtt in",
+        "z": "3f5eba95e9beea2c",
+        "name": "sub lab/# (debug)",
+        "topic": "lab/#",
+        "qos": "0",
+        "datatype": "auto",
+        "broker": "bkr1",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 130,
+        "y": 640,
+        "wires": [
+            [
+                "e2501135a5b16da5"
+            ]
+        ]
+    },
+    {
+        "id": "e2501135a5b16da5",
+        "type": "debug",
+        "z": "3f5eba95e9beea2c",
+        "name": "MQTT lab/#",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 360,
+        "y": 640,
+        "wires": []
+    },
+    {
+        "id": "0116c1c0b1747e3f",
+        "type": "ui-chart",
+        "z": "3f5eba95e9beea2c",
+        "group": "uiGroupMetrics",
+        "name": "",
+        "label": "Latency [ms]",
+        "order": 9007199254740991,
+        "chartType": "line",
+        "category": "topic",
+        "categoryType": "msg",
+        "xAxisLabel": "",
+        "xAxisProperty": "",
+        "xAxisPropertyType": "timestamp",
+        "xAxisType": "time",
+        "xAxisFormat": "",
+        "xAxisFormatType": "auto",
+        "xmin": "",
+        "xmax": "",
+        "yAxisLabel": "",
+        "yAxisProperty": "payload",
+        "yAxisPropertyType": "msg",
+        "ymin": "0",
+        "ymax": "2",
+        "bins": 10,
+        "action": "append",
+        "stackSeries": false,
+        "pointShape": "circle",
+        "pointRadius": 4,
+        "showLegend": true,
+        "removeOlder": 1,
+        "removeOlderUnit": "3600",
+        "removeOlderPoints": "",
+        "colors": [
+            "#0095ff",
+            "#ff0000",
+            "#ff7f0e",
+            "#2ca02c",
+            "#a347e1",
+            "#d62728",
+            "#ff9896",
+            "#9467bd",
+            "#c5b0d5"
+        ],
+        "textColor": [
+            "#666666"
+        ],
+        "textColorDefault": true,
+        "gridColor": [
+            "#e5e5e5"
+        ],
+        "gridColorDefault": true,
+        "width": "12",
+        "height": "6",
+        "className": "",
+        "interpolation": "linear",
+        "x": 850,
+        "y": 340,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "bkr1",
+        "type": "mqtt-broker",
+        "name": "broker",
+        "broker": "broker",
+        "port": "1883",
+        "clientid": "",
+        "usetls": false,
+        "protocolVersion": "4",
+        "keepalive": "60",
+        "cleansession": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthPayload": "",
+        "birthMsg": {},
+        "closeTopic": "",
+        "closeQos": "0",
+        "closePayload": "",
+        "closeMsg": {},
+        "willTopic": "",
+        "willQos": "0",
+        "willPayload": "",
+        "willMsg": {},
+        "sessionExpiry": ""
+    },
+    {
+        "id": "uiGroupControl",
+        "type": "ui-group",
+        "name": "Control",
+        "page": "uiPageIoT",
+        "width": "6",
+        "height": "1",
+        "order": 1,
+        "showTitle": true,
+        "className": ""
+    },
+    {
+        "id": "uiGroupMetrics",
+        "type": "ui-group",
+        "name": "Metrics",
+        "page": "uiPageIoT",
+        "width": "12",
+        "height": "1",
+        "order": 2,
+        "showTitle": true,
+        "className": ""
+    },
+    {
+        "id": "uiGroupTelemetry",
+        "type": "ui-group",
+        "name": "Telemetry",
+        "page": "uiPageIoT",
+        "width": "12",
+        "height": "1",
+        "order": 3,
+        "showTitle": true,
+        "className": ""
+    },
+    {
+        "id": "uiPageIoT",
+        "type": "ui-page",
+        "name": "IoT Lab",
+        "ui": "uiBaseIoT",
+        "path": "/",
+        "icon": "lan",
+        "layout": "grid",
+        "theme": "uiThemeIoT",
+        "order": 1,
+        "className": ""
+    },
+    {
+        "id": "uiBaseIoT",
+        "type": "ui-base",
+        "name": "IoT Lab UI",
+        "path": "/dashboard"
+    },
+    {
+        "id": "uiThemeIoT",
+        "type": "ui-theme",
+        "name": "IoT Theme",
+        "colors": {
+            "surface": "#ffffff",
+            "primary": "#0094CE",
+            "bgPage": "#eeeeee",
+            "groupBg": "#ffffff",
+            "groupOutline": "#cccccc"
+        }
+    },
+    {
+        "id": "531807f315547d82",
+        "type": "global-config",
+        "env": [],
+        "modules": {
+            "@flowfuse/node-red-dashboard": "1.29.0"
+        }
+    }
+]

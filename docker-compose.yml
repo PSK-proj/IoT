@@ -26,7 +26,10 @@ services:
     depends_on:
       - broker
     volumes:
-      - node_red_data:/data
+      - ./node-red:/data
+    entrypoint: >
+      sh -c "npm install --prefix /data --unsafe-perm --no-update-notifier --no-fund --only=production
+      && npm --no-update-notifier --no-fund start --cache /data/.npm -- --userDir /data"
 
   device_publisher:
     build:
