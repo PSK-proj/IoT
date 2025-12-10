@@ -13,6 +13,7 @@ node-red/.sessions.json
 node-red/.flows_*.cred
 node-red/.flows_*.json.backup
 node-red/node_modules/
+node-red/.npm
 
 # Certyfikaty i klucze
 certs/**/*.key
@@ -20,8 +21,8 @@ certs/**/*.pfx
 certs/**/*.p12
 
 # Nagrania ruchu
-pcap/*.pcap
-pcap/*.pcapng
+pcap/
+!pcap/.gitkeep
 
 # Hasła brokera
 mosquitto/passwords

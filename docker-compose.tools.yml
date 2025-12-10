@@ -1,0 +1,13 @@
+services:
+  certgen:
+    build: ./docker/certgen
+    container_name: certgen
+    profiles: ["tools"]
+    network_mode: "none"
+    environment:
+      - SRV_CN=broker
+      - SRV_SAN=DNS:broker,DNS:localhost
+      - CLIENT_CN_LIST=publisher-1,subscriber-1
+    volumes:
+      - ./certs:/work/certs
+    working_dir: /work

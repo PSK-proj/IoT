@@ -5,8 +5,13 @@ services:
     restart: unless-stopped
     ports:
       - "1883:1883"
+      - "8883:8883"
+      - "8884:8884"
     volumes:
-      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - ./mosquitto:/mosquitto/config
+      - ./certs:/mosquitto/certs
+      - broker_data:/mosquitto/data
+      - broker_log:/mosquitto/log
     networks: [labnet]
 
   node-red:
@@ -15,42 +20,97 @@ services:
     restart: unless-stopped
     ports:
       - "1880:1880"
+    environment:
+      - TZ=Europe/Warsaw
+    networks: [labnet]
+    depends_on:
+      - broker
     volumes:
       - ./node-red:/data
-    networks: [labnet]
-    depends_on: [broker]
+    entrypoint: >
+      sh -c "npm install --prefix /data --unsafe-perm --no-update-notifier --no-fund --only=production
+      && npm --no-update-notifier --no-fund start --cache /data/.npm -- --userDir /data"
 
   device_publisher:
-    build: ./devices/publisher
+    build:
+      context: ./devices/publisher
     container_name: device_publisher
     restart: unless-stopped
+    env_file:
+      - .env
     environment:
-      - DEVICE_NAME=publisher-1
-      - HEARTBEAT_SEC=5
+      - MQTT_MODE_DEFAULT=${MQTT_MODE_DEFAULT:-PLAIN}
+      - MQTT_CONTROL_TOPIC=${MQTT_CONTROL_TOPIC:-lab/control}
+      - MQTT_PLAIN_HOST=${MQTT_PLAIN_HOST:-broker}
+      - MQTT_PLAIN_PORT=${MQTT_PLAIN_PORT:-1883}
+      - MQTT_TLS_HOST=${MQTT_TLS_HOST:-broker}
+      - MQTT_TLS_PORT=${MQTT_TLS_PORT:-8883}
+      - MQTT_TLS_CA=${MQTT_TLS_CA:-/certs/ca.crt}
+      - MQTT_MTLS_HOST=${MQTT_MTLS_HOST:-broker}
+      - MQTT_MTLS_PORT=${MQTT_MTLS_PORT:-8884}
+      - MQTT_CLIENT_CERT=${MQTT_CLIENT_CERT:-/certs/clients/publisher-1.crt}
+      - MQTT_CLIENT_KEY=${MQTT_CLIENT_KEY:-/certs/clients/publisher-1.key}
+      - MQTT_USERNAME=${MQTT_USERNAME:-}
+      - MQTT_PASSWORD=${MQTT_PASSWORD:-}
+      - DEVICE_NAME=${PUB_DEVICE_NAME:-publisher-1}
+      - HEARTBEAT_SEC=${PUB_HEARTBEAT_SEC:-1.0}
+      - MQTT_TOPIC_PUB=${MQTT_TOPIC_PUB:-}
+      - MQTT_QOS=${MQTT_QOS:-0}
+    volumes:
+      - ./certs:/certs:ro
     networks: [labnet]
-    depends_on: [broker]
+    depends_on:
+      - broker
 
   device_subscriber:
-    build: ./devices/subscriber
+    build:
+      context: ./devices/subscriber
     container_name: device_subscriber
     restart: unless-stopped
+    env_file:
+      - .env
     environment:
-      - DEVICE_NAME=subscriber-1
-      - HEARTBEAT_SEC=5
+      - MQTT_MODE_DEFAULT=${MQTT_MODE_DEFAULT:-PLAIN}
+      - MQTT_CONTROL_TOPIC=${MQTT_CONTROL_TOPIC:-lab/control}
+      - MQTT_PLAIN_HOST=${MQTT_PLAIN_HOST:-broker}
+      - MQTT_PLAIN_PORT=${MQTT_PLAIN_PORT:-1883}
+      - MQTT_TLS_HOST=${MQTT_TLS_HOST:-broker}
+      - MQTT_TLS_PORT=${MQTT_TLS_PORT:-8883}
+      - MQTT_TLS_CA=${MQTT_TLS_CA:-/certs/ca.crt}
+      - MQTT_MTLS_HOST=${MQTT_MTLS_HOST:-broker}
+      - MQTT_MTLS_PORT=${MQTT_MTLS_PORT:-8884}
+      - MQTT_CLIENT_CERT=${MQTT_CLIENT_CERT:-/certs/clients/subscriber-1.crt}
+      - MQTT_CLIENT_KEY=${MQTT_CLIENT_KEY:-/certs/clients/subscriber-1.key}
+      - MQTT_USERNAME=${MQTT_USERNAME:-}
+      - MQTT_PASSWORD=${MQTT_PASSWORD:-}
+      - DEVICE_NAME=${SUB_DEVICE_NAME:-subscriber-1}
+      - HEARTBEAT_SEC=${SUB_HEARTBEAT_SEC:-1.0}
+      - MQTT_TOPIC_SUB=${MQTT_TOPIC_SUB:-lab/telemetry/#}
+      - MQTT_TOPIC_METRICS=${MQTT_TOPIC_METRICS:-lab/metrics}
+      - MQTT_QOS=${MQTT_QOS:-0}
+    volumes:
+      - ./certs:/certs:ro
     networks: [labnet]
-    depends_on: [broker]
+    depends_on:
+      - broker
 
   sniffer:
-    image: nicolaka/netshoot
+    image: nicolaka/netshoot:latest
     container_name: sniffer
-    command: ["sleep", "infinity"]
+    network_mode: "service:broker"
+    cap_add: ["NET_ADMIN", "NET_RAW"]
     restart: unless-stopped
-    cap_add: ["NET_ADMIN","NET_RAW"]
+    command: ["sleep", "infinity"]
     volumes:
       - ./pcap:/pcap
-    networks: [labnet]
-    depends_on: [broker]
+    depends_on:
+      - broker
 
 networks:
   labnet:
     driver: bridge
+
+volumes:
+  broker_data:
+  broker_log:
+  node_red_data:
